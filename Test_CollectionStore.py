@@ -48,12 +48,12 @@ class TestCollectionStore(unittest.TestCase):
     
     def test_020group_storage(self):
         grp = CollectionGroup()
-        self.stflush(grp)
+        self.stflush(grp) #insert
         grp.name = "name changed"
-        self.stflush(grp)
+        self.stflush(grp) #update
         grp2 = CollectionGroup()
         grp.name = "other name"
-        self.stflush(grp2)
+        self.stflush(grp2) #another insert
 
     def test_030group_storagenreading(self):
         grp = CollectionGroup()
@@ -63,6 +63,7 @@ class TestCollectionStore(unittest.TestCase):
         self.assertEqual(grp.gid, grpr.gid)
         self.assertEqual(grp.name, grpr.name)
         self.assertEqual(grp.created, grpr.created)
+        self.assertEqual(grp.grp_type, grpr.grp_type)
 
     def stflush(self, dob):
         self.__class__.sstore.flush(dob)

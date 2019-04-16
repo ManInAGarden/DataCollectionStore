@@ -13,4 +13,4 @@ class CollectionGroup(DTBasic):
     def __init__(self):
         super().__init__()
         self.name = "new collection group"
-        self.group_type = CollectionGroup.NONETYPE
+        self.grp_type = CollectionGroup.NONETYPE

@@ -3,24 +3,34 @@ import datetime
 import numpy as np
 
 class DEBasic:
-    def __init__(self, tablealias = "b01", colname = None, proptype = str, dbtype=None, isprimary=False):
+    def __init__(self, tablealias = "b01", colname = None, proptype = str, dbtype=None, isprimary=False, neverUpdate=False):
         self.tablealias = tablealias
         self.colname = colname if colname != None else proptype
         self.proptype = proptype
         self.dbtype = dbtype
         self.isprimary = isprimary
+        self.neverUpdate = neverUpdate
 
 class DEDateTime(DEBasic):
-    def __init__(self, tablealias = "b01", colname = None):
-        super().__init__(tablealias=tablealias, colname=colname, proptype=datetime, dbtype="TIMESTAMP")
+    def __init__(self, tablealias = "b01", colname = None, neverUpdate=False):
+        super().__init__(tablealias=tablealias, 
+            colname=colname, 
+            proptype=datetime.datetime, 
+            dbtype="TIMESTAMP",
+            neverUpdate=neverUpdate)
 
 class DEGid(DEBasic):
     def __init__(self, tablealias = "b01", colname = None):
-        super().__init__(tablealias=tablealias, colname=colname, proptype=str, dbtype="uuid", isprimary=True)
+        super().__init__(tablealias=tablealias, 
+            colname=colname, 
+            proptype=uuid.UUID, 
+            dbtype="uuid", 
+            isprimary=True, 
+            neverUpdate=True)
 
 class DEForeignKey(DEBasic):
     def __init__(self, tablealias = "b01", colname = None):
-        super().__init__(tablealias=tablealias, colname=colname, proptype=str, dbtype="uuid")
+        super().__init__(tablealias=tablealias, colname=colname, proptype=uuid.UUID, dbtype="uuid")
 
 class DEText(DEBasic):
     def __init__(self, tablealias = "b01", colname = None):
@@ -51,7 +61,7 @@ class DTBasic:
     """
     persistents = {
             "gid": DEGid(colname="gid"), 
-            "created":DEDateTime(colname="created"),
+            "created":DEDateTime(colname="created", neverUpdate=True),
             "updated":DEDateTime(colname="updated")
     }
 

@@ -24,6 +24,7 @@ class DataCollectionStore:
             sqlite3.register_adapter(uuid.UUID, DataCollectionStore.adapt_uuid)
             sqlite3.register_converter("uuid", DataCollectionStore.convert_uuid)
         self.conn = sqlite3.connect(dbfilename, detect_types=sqlite3.PARSE_DECLTYPES)
+        self.conn.row_factory = sqlite3.Row
 
     def dispose_me(self):
         """dispose the store after any work has been done
@@ -33,7 +34,7 @@ class DataCollectionStore:
     def create_tables(self):
         """method for creation of all data base tables needed
         """
-        self.conn.execute("create table coll (gid uuid PRIMARY KEY NOT NULL, name TEXT NOT NULL, parent_id uuid, group_id uuid NOT NULL, spec_type TEXT, data nparray, created TIMESTAMP, updated TIMESTAMP)")
+        self.conn.execute("create table coll (gid uuid PRIMARY KEY NOT NULL, name TEXT NOT NULL, parent_id uuid, group_id uuid NOT NULL, coll_type TEXT, data nparray, created TIMESTAMP, updated TIMESTAMP)")
         self.conn.execute("create table coll_grp (gid uuid PRIMARY KEY NOT NULL, name TEXT NOT NULL, grp_type TEXT, created TIMESTAMP, updated TIMESTAMP)")
 
 
@@ -50,14 +51,14 @@ class DataCollectionStore:
         if not self.__in_transaction:
             raise Exception("Rollback with no running transaction")
         else:
-            conn.Rollback()
+            self.conn.Rollback()
             self.__in_transaction = False
 
     def commit_transaction(self):
         if not self.__in_transaction:
             raise Exception("Rollback with no running transaction")
         else:
-            conn.commit()
+            self.conn.commit()
             self.__in_transaction = False
 
     def flush(self, dob):
@@ -86,11 +87,11 @@ class DataCollectionStore:
         stmt = "insert into {} ({}) values({})".format(tabs["b01"].name,
             cols, 
             marks)
-        dattup = self.__getproptuple(dob, pers, "b01")
+        dattup = self.__getproptuple_ins(dob, pers, "b01")
         self.conn.execute(stmt, dattup)
         dob.ispersist = True
 
-    def __getproptuple(self, dob, pers, tablealias):
+    def __getproptuple_ins(self, dob, pers, tablealias):
         """get the proptuple for a table
         """
         answ = []
@@ -100,6 +101,17 @@ class DataCollectionStore:
                 answ.append(getattr(dob, key, "None"))
 
         return tuple(answ)
+
+    def __getproptuple_upd(self, dob, pers, tablealias):
+        """get the proptuple for a table
+        """
+        answ = []
+        
+        for key, pentry in pers.items():
+            if pentry.tablealias == tablealias and not pentry.neverUpdate:
+                answ.append(getattr(dob, key, "None"))
+
+        return tuple(answ) + (dob.gid,)
 
     def __getcolsforins(self, ps):
         cols = None
@@ -129,14 +141,14 @@ class DataCollectionStore:
             "b01",
             sets, 
             wc)
-        dattup = self.__getproptuple(dob, pers, "b01")
-        self.conn.execute(stmt, dattup + (getattr(dob, "gid", "None"),))
+        dattup = self.__getproptuple_upd(dob, pers, "b01")
+        self.conn.execute(stmt, dattup)
 
     def __getupsforup(self, pers):
         answ = None
         first = True
         for key, perentry in pers.items():
-            if perentry.tablealias == "b01" and key != "gid":
+            if perentry.tablealias == "b01" and not perentry.neverUpdate:
                 if first:
                     answ = "{}=?".format(perentry.colname)
                     first = False
@@ -153,13 +165,14 @@ class DataCollectionStore:
         res = curs.execute(stmt, {"gid": gid})
         row = res.fetchone()
 
-        for key, pentry in t.persistents:
-            setattr(dob.key, self.__get_val_obj_style(pentry, row[key]))
+        for key, pentry in t.persistents.items():
+            val = self.__get_val_obj_style(pentry, row[key])
+            setattr(dob, key, val)
 
         return dob
 
     def __get_val_obj_style(self, pentry, value):
-        if value == None:
+        if value == None or value == 'None':
             return None
 
         valt = type(value)
@@ -219,10 +232,10 @@ class DataCollectionStore:
 
     @classmethod
     def adapt_uuid(cls, gid):
-        return str(gid)
+        return gid.hex
 
     @classmethod
     def convert_uuid(cls, text):
-        return uuid.UUID(hex=text)
+        return uuid.UUID(hex=text.decode())
 
 
