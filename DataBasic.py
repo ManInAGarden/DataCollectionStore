@@ -65,10 +65,26 @@ class DTBasic:
             "updated":DEDateTime(colname="updated")
     }
 
+
     tables = {"b01" : DTTableEntry()}
 
+    
     def __init__(self):
         self.ispersist = False
         self.gid = uuid.uuid4()
         self.created = datetime.datetime.now()
         self.updated = datetime.datetime.now()
+
+    #override these in derived classes to add your onw behaviour.
+    #Be aware that these methodes are called in transactions.
+    #When these are rolled back all your changes in the database will
+    #also be rolled back. If this is what you want you're OK. If not
+    #think of storing information somewhere else.
+    def before_update(self, store):
+        self.updated = datetime.datetime.now()
+
+    def before_delete(self, store):
+        pass
+
+    def before_insert(self, store):
+        pass

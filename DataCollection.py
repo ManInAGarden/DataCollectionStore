@@ -1,31 +1,28 @@
 import uuid
 import datetime
-from DataBasic import DTBasic, DEDateTime, DEForeignKey, DEText, DENumpyArray
-from DataGroup import DataGroup
+from DataBasic import DTBasic, DEDateTime, DEForeignKey, DEText, DENumpyArray, DTTableEntry
 
 class DataCollection(DTBasic):
     """basic implementation of a class to store spectra data in da local database
     """
     SPECTRUM = "SP"
     MAP = "MA"
+    UNSPECIFIED = "./."
+
+    tables = DTBasic.tables.copy()
+    tables["b01"] = DTTableEntry(name="coll")
+
     persistents = DTBasic.persistents.copy()
     persistents.update({"name": DEText(colname="name"),
                      "coll_type": DEText(colname="coll_type"),
-                     "parent_id": DEForeignKey(colname="parent_id"),
-                     "group_id": DEForeignKey(colname="group_id"),
+                     "parent_gid": DEForeignKey(colname="parent_gid"),
+                     "group_gid": DEForeignKey(colname="group_gid"),
                      "data": DENumpyArray(colname="data")})
 
     def __init__(self):
-        self.gid = str(uuid.uuid4())
-        self.ispersist = False
-        self.coll_type = DataCollection.SPECTRUM
-        self.created = datetime.datetime.now()
-        self.updated = self.created
-        self.name = "Spectra " + str(self.created)
+        super().__init__()
+        self.coll_type = DataCollection.UNSPECIFIED
+        self.name = "Collection " + str(self.created)
         self.parent_id = None
         self.group_id = None
         self.data = None
-
-
-    def set_data(self, data):
-        self.data = data

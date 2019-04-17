@@ -34,7 +34,7 @@ class DataCollectionStore:
     def create_tables(self):
         """method for creation of all data base tables needed
         """
-        self.conn.execute("create table coll (gid uuid PRIMARY KEY NOT NULL, name TEXT NOT NULL, parent_id uuid, group_id uuid NOT NULL, coll_type TEXT, data nparray, created TIMESTAMP, updated TIMESTAMP)")
+        self.conn.execute("create table coll (gid uuid PRIMARY KEY NOT NULL, name TEXT NOT NULL, parent_gid uuid, group_gid uuid NOT NULL, coll_type TEXT, data nparray, created TIMESTAMP, updated TIMESTAMP)")
         self.conn.execute("create table coll_grp (gid uuid PRIMARY KEY NOT NULL, name TEXT NOT NULL, grp_type TEXT, created TIMESTAMP, updated TIMESTAMP)")
 
 
@@ -79,6 +79,11 @@ class DataCollectionStore:
 
         return dob
 
+    def delete(self, dob):
+        stmt = "delete from {} where gid=?".format(dob.tables["b01"].name)
+        dob.before_delete(self)
+        self.conn.execute(stmt, (dob.gid,))
+
     def __do_insert(self, dob):
         dob_class = type(dob)
         pers = dob_class.persistents
@@ -88,6 +93,7 @@ class DataCollectionStore:
             cols, 
             marks)
         dattup = self.__getproptuple_ins(dob, pers, "b01")
+        dob.before_insert(self)
         self.conn.execute(stmt, dattup)
         dob.ispersist = True
 
@@ -136,12 +142,12 @@ class DataCollectionStore:
         pers = dob_class.persistents
         tabs = dob_class.tables
         sets = self.__getupsforup(pers)
-        wc = "b01.gid=?"
-        stmt = "update {} {} set {} where {})".format(tabs["b01"].name,
-            "b01",
+        wc = "gid=?"
+        stmt = "update {} set {} where {}".format(tabs["b01"].name,
             sets, 
             wc)
         dattup = self.__getproptuple_upd(dob, pers, "b01")
+        dob.before_update(self)
         self.conn.execute(stmt, dattup)
 
     def __getupsforup(self, pers):
@@ -157,7 +163,6 @@ class DataCollectionStore:
         return answ
 
     def getbygid(self, t, gid):
-        dob = t()
         selcols = self.__get_sel_cols(t)
         seltables = self.__get_sel_tables(t)
         stmt = "select {} from {} where gid=:gid".format(selcols, seltables)
@@ -165,6 +170,10 @@ class DataCollectionStore:
         res = curs.execute(stmt, {"gid": gid})
         row = res.fetchone()
 
+        if row==None:
+            return None
+
+        dob = t()
         for key, pentry in t.persistents.items():
             val = self.__get_val_obj_style(pentry, row[key])
             setattr(dob, key, val)
@@ -214,8 +223,6 @@ class DataCollectionStore:
                 tabalias,
                 tentry.joindef)
 
-    def delete(self, do):
-        pass
         
     @classmethod
     def adapt_array(cls, arr):

@@ -1,13 +1,13 @@
 import unittest
 import os
 import os.path
+import time
 import numpy as np
 
 from DataBasic import DTBasic
 from CollectionGroup import CollectionGroup
 from DataCollectionStore import DataCollectionStore
 from DataCollection import *
-from DataGroup import *
 
 class TestCollectionStore(unittest.TestCase):
     sstore = None
@@ -49,8 +49,11 @@ class TestCollectionStore(unittest.TestCase):
     def test_020group_storage(self):
         grp = CollectionGroup()
         self.stflush(grp) #insert
+        oldupdated = grp.updated
         grp.name = "name changed"
         self.stflush(grp) #update
+        time.sleep(1)
+        self.assertGreater(grp.updated, oldupdated)
         grp2 = CollectionGroup()
         grp.name = "other name"
         self.stflush(grp2) #another insert
@@ -63,7 +66,33 @@ class TestCollectionStore(unittest.TestCase):
         self.assertEqual(grp.gid, grpr.gid)
         self.assertEqual(grp.name, grpr.name)
         self.assertEqual(grp.created, grpr.created)
+        self.assertEqual(grp.updated, grpr.updated)
         self.assertEqual(grp.grp_type, grpr.grp_type)
+
+    def test_040group_delete(self):
+        grp = CollectionGroup()
+        grp.name = "a group to be deleted UT"
+        self.stflush(grp)
+        grpr = self.stgetbygid(CollectionGroup, grp.gid)
+        self.assertIsNotNone(grpr)
+        self.sstore.delete(grp)
+        grpr = self.stgetbygid(CollectionGroup, grp.gid)
+        self.assertIsNone(grpr)
+
+    def test_100coll_alldbops(self):
+        defgrp = CollectionGroup()
+        defgrp.name = "DEFAULT-GRP-UT#1"
+        self.stflush(defgrp)
+
+        coll = DataCollection()
+        coll.name = "collection #1-UT"
+        coll.group_gid = coll.gid
+        self.stflush(coll)
+        collr = self.stgetbygid(DataCollection, coll.gid)
+        self.assertEqual(coll.gid, collr.gid)
+        self.assertEqual(coll.name, collr.name)
+        self.assertEqual(coll.grp_type, collr.grp_type)
+    
 
     def stflush(self, dob):
         self.__class__.sstore.flush(dob)
