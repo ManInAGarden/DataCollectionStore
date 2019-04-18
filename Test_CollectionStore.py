@@ -7,7 +7,7 @@ import numpy as np
 from DataBasic import DTBasic
 from CollectionGroup import CollectionGroup
 from DataCollectionStore import DataCollectionStore
-from DataCollection import *
+from DataCollection import DataCollection
 
 class TestCollectionStore(unittest.TestCase):
     sstore = None
@@ -86,12 +86,12 @@ class TestCollectionStore(unittest.TestCase):
 
         coll = DataCollection()
         coll.name = "collection #1-UT"
-        coll.group_gid = coll.gid
+        coll.group_gid = defgrp.gid
         self.stflush(coll)
         collr = self.stgetbygid(DataCollection, coll.gid)
         self.assertEqual(coll.gid, collr.gid)
         self.assertEqual(coll.name, collr.name)
-        self.assertEqual(coll.grp_type, collr.grp_type)
+        self.assertEqual(coll.coll_type, collr.coll_type)
     
 
     def stflush(self, dob):

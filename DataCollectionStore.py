@@ -4,7 +4,9 @@ import uuid
 import numpy as np
 import io
 
-from DataCollection import *
+from DataBasic import DTBasic
+from DataCollection import DataCollection
+from CollectionGroup import CollectionGroup
 
 
 class DataCollectionStore:
@@ -243,6 +245,9 @@ class DataCollectionStore:
 
     @classmethod
     def convert_uuid(cls, text):
-        return uuid.UUID(hex=text.decode())
+        if text.decode() == 'None':
+            return None
+        else:
+            return uuid.UUID(hex=text.decode())
 
 
